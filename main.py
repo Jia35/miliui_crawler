@@ -80,7 +80,7 @@ class MiliuiCrawler():
         """下載檔案"""
         s = requests.session()
 
-        # 先抓取 Token
+        # 先抓取下載網址與 Token
         headers_ = HEADERS.copy()
         headers_['referer'] = predownload_url
         r = s.get(predownload_url, headers=headers_)
@@ -89,17 +89,21 @@ class MiliuiCrawler():
             return False
         soup = BeautifulSoup(r.text, 'html.parser')
 
+        form_block = soup.select_one('form')
+        if not (form_block and form_block.get('action')):
+            logger.warning('找不到 download_url')
+            return False
+        download_url = form_block.get('action')
+
         token_block = soup.select_one('form input[name="_token"]')
         if not(token_block and token_block.get('value')):
             logger.warning('找不到 Token')
             return False
         download_token = token_block.get('value')
-        # print(f'_token = {download_token}')
 
         # 主要下載檔案
-        download_url = 'https://addons.miliui.com/file/download/3'
-        my_data = {'_token': download_token}
-        r = s.post(download_url, headers=HEADERS, data=my_data)
+        data = {'_token': download_token}
+        r = s.post(download_url, headers=HEADERS, data=data)
         if r.status_code != requests.codes.ok:
             logger.warning(f'網頁抓取失敗：{download_url}')
             return False
